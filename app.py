@@ -96,6 +96,7 @@ def send_telegram(bot_token, chat_id, message):
             "parse_mode": "HTML"
         }
         r = requests.post(url, json=payload, timeout=10)
+        print(f"Telegram response: {r.status_code} - {r.text}")
         return r.status_code == 200
     except Exception as e:
         print(f"Telegram hatası: {e}")
