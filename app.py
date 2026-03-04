@@ -114,10 +114,12 @@ def scan_loop():
                 pair["last_scan"] = datetime.now().strftime("%H:%M:%S")
                 pair["fvgs"] = fvgs
 
-                # FVG içinde fiyat var mı?
-                triggered = [f for f in fvgs if f.get("price_inside")]
+		# FVG içinde fiyat var mı? Sadece en yeni FVG'yi al
+		triggered = [f for f in fvgs if f.get("price_inside")]
+		if triggered:
+    			triggered = [max(triggered, key=lambda x: x["date"])]
 
-                for fvg in triggered:
+		for fvg in triggered:
                     alert_key = f"{symbol}_{fvg['date']}_{fvg['type']}"
                     sent_alerts = data.get("sent_alerts", [])
 
