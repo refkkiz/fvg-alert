@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FVG Alert — Yönetim Paneli</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #131920;
+    --border: #1e2d3d;
+    --accent: #00d4ff;
+    --green: #00ff88;
+    --red: #ff3366;
+    --yellow: #ffd700;
+    --text: #c9d1d9;
+    --muted: #4a5568;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    background: rgba(8,12,16,0.9);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .logo {
+    font-family: var(--font-head);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #0066ff);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo span { color: var(--accent); }
+  .status-bar {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--muted);
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* Main grid */
+  main { padding: 32px 0; display: grid; gap: 24px; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Two column layout */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+  /* Inputs */
+  .input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  input[type="text"] {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  button {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  button:hover { opacity: 0.85; transform: translateY(-1px); }
+  button.danger { background: var(--red); color: #fff; padding: 6px 12px; font-size: 11px; }
+  button.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  button.success { background: var(--green); color: #000; }
+
+  /* Pairs table */
+  .pair-list { display: flex; flex-direction: column; gap: 8px; }
+  .pair-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.2s;
+  }
+  .pair-item:hover { border-color: var(--accent); }
+  .pair-symbol {
+    font-family: var(--font-head);
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    min-width: 100px;
+  }
+  .pair-price {
+    font-size: 13px;
+    color: var(--yellow);
+    font-weight: 700;
+    min-width: 100px;
+    text-align: right;
+  }
+  .pair-scan { font-size: 11px; color: var(--muted); min-width: 80px; text-align: center; }
+  .pair-fvg-count {
+    font-size: 11px;
+    background: rgba(0,212,255,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    min-width: 70px;
+    text-align: center;
+  }
+  .fvg-active {
+    background: rgba(255,215,0,0.15);
+    border-color: var(--yellow);
+    color: var(--yellow);
+    animation: glow 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes glow {
+    from { box-shadow: 0 0 4px rgba(255,215,0,0.3); }
+    to   { box-shadow: 0 0 12px rgba(255,215,0,0.7); }
+  }
+
+  /* FVG detail zones */
+  .fvg-zones { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+  .fvg-zone {
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid;
+  }
+  .fvg-zone.bullish {
+    background: rgba(0,255,136,0.06);
+    border-color: rgba(0,255,136,0.2);
+    color: var(--green);
+  }
+  .fvg-zone.bearish {
+    background: rgba(255,51,102,0.06);
+    border-color: rgba(255,51,102,0.2);
+    color: var(--red);
+  }
+  .fvg-zone.active {
+    background: rgba(255,215,0,0.1);
+    border-color: var(--yellow);
+    color: var(--yellow);
+  }
+  .fvg-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+  .fvg-badge.in { background: var(--yellow); color: #000; }
+  .fvg-badge.out { background: var(--muted); color: #000; }
+
+  /* Alert history */
+  .alert-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+  .alert-item {
+    background: var(--surface2);
+    border-left: 3px solid var(--yellow);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+  .alert-item.bullish { border-left-color: var(--green); }
+  .alert-item.bearish { border-left-color: var(--red); }
+  .alert-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .alert-sym { font-weight: 700; color: #fff; font-family: var(--font-head); }
+  .alert-time { color: var(--muted); font-size: 11px; }
+
+  /* Telegram settings */
+  .tg-form { display: flex; flex-direction: column; gap: 10px; }
+  .tg-hint {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 4px;
+  }
+  .tg-hint a { color: var(--accent); text-decoration: none; }
+  .tg-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+  /* Scan button */
+  .scan-btn {
+    background: linear-gradient(135deg, var(--accent), #0066ff);
+    color: #000;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+    display: flex; align-items: center; gap: 8px;
+    transition: all 0.2s;
+  }
+  .scan-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .scan-btn.loading { opacity: 0.6; cursor: not-allowed; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  .empty-state { color: var(--muted); font-size: 12px; text-align: center; padding: 20px; }
+
+  @media(max-width:900px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      FVG <span>Alert</span>
+    </div>
+    <div class="status-bar">
+      <div class="dot"></div>
+      <span id="status-text">Sistem aktif — her 5 dakikada tarar</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+<main>
+
+  <!-- Üst satır: Parite ekle + Telegram ayarları -->
+  <div class="grid-2">
+
+    <!-- Parite Ekle -->
+    <div class="card" style="animation-delay:0.05s">
+      <div class="card-title">📊 Parite Ekle</div>
+      <div class="input-row">
+        <input type="text" id="symbol-input" placeholder="Örn: EURUSD=X, BTC-USD, AAPL" />
+        <button onclick="addPair()">+ Ekle</button>
+      </div>
+      <div class="tg-hint">
+        Yahoo Finance sembolleri: Forex → <b>EURUSD=X</b>, <b>GBPUSD=X</b> &nbsp;|&nbsp; Kripto → <b>BTC-USD</b> &nbsp;|&nbsp; Hisse → <b>AAPL</b>, <b>THYAO.IS</b>
+      </div>
+    </div>
+
+    <!-- Telegram Ayarları -->
+    <div class="card" style="animation-delay:0.1s">
+      <div class="card-title">🤖 Telegram Botu</div>
+      <div class="tg-form">
+        <input type="text" id="bot-token" placeholder="Bot Token (BotFather'dan alın)" />
+        <input type="text" id="chat-id" placeholder="Chat ID (@userinfobot ile öğrenin)" />
+        <div class="tg-actions">
+          <button onclick="saveTelegram()" class="success">💾 Kaydet</button>
+          <button onclick="testTelegram()" class="secondary">📨 Test Gönder</button>
+        </div>
+        <div class="tg-hint">
+          1. <a href="https://t.me/BotFather" target="_blank">@BotFather</a>'a gidin → /newbot → Token alın<br>
+          2. <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>'a mesaj atın → Chat ID öğrenin
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Orta: İzleme listesi + FVG Bölgeleri -->
+  <div class="grid-3">
+
+    <!-- Parite listesi -->
+    <div class="card" style="animation-delay:0.15s">
+      <div class="card-title" style="justify-content:space-between">
+        <span>📈 İzleme Listesi</span>
+        <button class="scan-btn" id="scan-btn" onclick="scanNow()">
+          <span id="scan-icon">🔍</span> Şimdi Tara
+        </button>
+      </div>
+      <div class="pair-list" id="pair-list">
+        <div class="empty-state">Henüz parite eklenmedi</div>
+      </div>
+    </div>
+
+    <!-- FVG Bölgeleri -->
+    <div class="card" style="animation-delay:0.2s">
+      <div class="card-title">🎯 FVG Bölgeleri</div>
+      <div id="fvg-detail">
+        <div class="empty-state">Bir parite seçin</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Alt: Alarm geçmişi -->
+  <div class="card" style="animation-delay:0.25s">
+    <div class="card-title">🔔 Alarm Geçmişi</div>
+    <div class="alert-list" id="alert-list">
+      <div class="empty-state">Henüz alarm tetiklenmedi</div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let selectedSymbol = null;
+let appData = { pairs: [], telegram: {}, alerts: [] };
+
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = ok ? 'var(--green)' : 'var(--red)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function loadData() {
+  const res = await fetch('/api/data');
+  appData = await res.json();
+  renderPairs();
+  renderAlerts();
+  fillTelegramForm();
+}
+
+function fillTelegramForm() {
+  if (appData.telegram) {
+    document.getElementById('bot-token').value = appData.telegram.bot_token || '';
+    document.getElementById('chat-id').value = appData.telegram.chat_id || '';
+  }
+}
+
+function renderPairs() {
+  const list = document.getElementById('pair-list');
+  if (!appData.pairs.length) {
+    list.innerHTML = '<div class="empty-state">Henüz parite eklenmedi</div>';
+    return;
+  }
+  list.innerHTML = appData.pairs.map(p => {
+    const activeCount = (p.fvgs || []).filter(f => f.price_inside).length;
+    const fvgClass = activeCount > 0 ? 'fvg-active' : '';
+    const priceStr = p.last_price ? p.last_price.toFixed(5) : '—';
+    return `
+      <div class="pair-item" onclick="selectPair('${p.symbol}')" style="cursor:pointer">
+        <div class="pair-symbol">${p.symbol}</div>
+        <div class="pair-price">${priceStr}</div>
+        <div class="pair-scan">${p.last_scan || '—'}</div>
+        <div class="pair-fvg-count ${fvgClass}">
+          ${activeCount > 0 ? '⚡' : '📊'} ${(p.fvgs||[]).length} FVG
+          ${activeCount > 0 ? `<br><small>${activeCount} aktif</small>` : ''}
+        </div>
+        <button class="danger" onclick="event.stopPropagation(); removePair('${p.symbol}')">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function selectPair(symbol) {
+  selectedSymbol = symbol;
+  const pair = appData.pairs.find(p => p.symbol === symbol);
+  const el = document.getElementById('fvg-detail');
+
+  if (!pair || !pair.fvgs || !pair.fvgs.length) {
+    el.innerHTML = `<div class="empty-state">${symbol} için FVG bulunamadı<br>Tarama yapın</div>`;
+    return;
+  }
+
+  const zones = pair.fvgs.slice().reverse();
+  el.innerHTML = `
+    <div style="font-size:12px; color:var(--muted); margin-bottom:10px">${symbol} — Son ${zones.length} FVG</div>
+    <div class="fvg-zones">
+      ${zones.map(f => `
+        <div class="fvg-zone ${f.price_inside ? 'active' : f.type}">
+          <div>
+            <div style="font-weight:700">${f.type === 'bullish' ? '▲ Bullish' : '▼ Bearish'}</div>
+            <div style="font-size:11px; opacity:0.7">${f.bottom.toFixed(5)} – ${f.top.toFixed(5)}</div>
+            <div style="font-size:10px; opacity:0.5">${f.date}</div>
+          </div>
+          <span class="fvg-badge ${f.price_inside ? 'in' : 'out'}">
+            ${f.price_inside ? '⚡ İÇİNDE' : 'dışında'}
+          </span>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderAlerts() {
+  const list = document.getElementById('alert-list');
+  if (!appData.alerts || !appData.alerts.length) {
+    list.innerHTML = '<div class="empty-state">Henüz alarm tetiklenmedi</div>';
+    return;
+  }
+  list.innerHTML = appData.alerts.map(a => `
+    <div class="alert-item ${a.type}">
+      <div class="alert-top">
+        <span class="alert-sym">${a.symbol}</span>
+        <span class="alert-time">${a.time}</span>
+      </div>
+      <div style="font-size:11px; color:var(--muted)">
+        ${a.type === 'bullish' ? '📈' : '📉'} ${a.type.toUpperCase()} FVG —
+        Fiyat: <b style="color:var(--yellow)">${a.price.toFixed(5)}</b> —
+        Bölge: ${a.fvg_range}
+      </div>
+    </div>`).join('');
+}
+
+async function addPair() {
+  const sym = document.getElementById('symbol-input').value.trim().toUpperCase();
+  if (!sym) return;
+  await fetch('/api/pairs', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ symbol: sym })
+  });
+  document.getElementById('symbol-input').value = '';
+  toast(`${sym} izleme listesine eklendi`);
+  await loadData();
+}
+
+async function removePair(symbol) {
+  await fetch(`/api/pairs/${symbol}`, { method: 'DELETE' });
+  toast(`${symbol} kaldırıldı`, false);
+  await loadData();
+}
+
+async function saveTelegram() {
+  const bot_token = document.getElementById('bot-token').value.trim();
+  const chat_id = document.getElementById('chat-id').value.trim();
+  await fetch('/api/telegram', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ bot_token, chat_id })
+  });
+  toast('Telegram ayarları kaydedildi ✓');
+}
+
+async function testTelegram() {
+  const bot_token = document.getElementById('bot-token').value.trim();
+  const chat_id = document.getElementById('chat-id').value.trim();
+  const res = await fetch('/api/test_telegram', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ bot_token, chat_id })
+  });
+  const d = await res.json();
+  toast(d.ok ? '✅ Test mesajı Telegram\'a gönderildi!' : '❌ Telegram bağlantısı başarısız', d.ok);
+}
+
+async function scanNow() {
+  const btn = document.getElementById('scan-btn');
+  const icon = document.getElementById('scan-icon');
+  btn.classList.add('loading');
+  icon.textContent = '⏳';
+  document.getElementById('status-text').textContent = 'Taranıyor...';
+  await fetch('/api/scan_now', { method: 'POST' });
+  await loadData();
+  if (selectedSymbol) selectPair(selectedSymbol);
+  btn.classList.remove('loading');
+  icon.textContent = '🔍';
+  document.getElementById('status-text').textContent = `Son tarama: ${new Date().toLocaleTimeString('tr-TR')}`;
+  toast('Tarama tamamlandı');
+}
+
+// Enter ile ekle
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement.id === 'symbol-input') addPair();
+});
+
+// İlk yükle, sonra 30sn'de bir güncelle
+loadData();
+setInterval(loadData, 30000);
+</script>
+</body>
+</html>
