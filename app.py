@@ -13,15 +13,22 @@ DATA_FILE = "watchlist.json"
 
 # ─── Veri Yönetimi ───────────────────────────────────────────────────────────
 
+import os
+
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    return {"pairs": [], "telegram": {"bot_token": "", "chat_id": ""}, "alerts": []}
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2, default=str)
+            data = json.load(f)
+    else:
+        data = {"pairs": [], "telegram": {"bot_token": "", "chat_id": ""}, "alerts": []}
+    
+    # Environment variable varsa öncelikli kullan
+    if os.environ.get("BOT_TOKEN"):
+        data["telegram"]["bot_token"] = os.environ.get("BOT_TOKEN")
+    if os.environ.get("CHAT_ID"):
+        data["telegram"]["chat_id"] = os.environ.get("CHAT_ID")
+    
+    return data
 
 # ─── FVG Tespit Algoritması ───────────────────────────────────────────────────
 
