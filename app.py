@@ -119,7 +119,7 @@ def scan_loop():
                 if triggered:
                     triggered = [max(triggered, key=lambda x: x["date"])]
 
-		for fvg in triggered:
+                for fvg in triggered:
                     alert_key = f"{symbol}_{fvg['date']}_{fvg['type']}"
                     sent_alerts = data.get("sent_alerts", [])
 
