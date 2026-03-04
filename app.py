@@ -22,11 +22,19 @@ def load_data():
     else:
         data = {"pairs": [], "telegram": {"bot_token": "", "chat_id": ""}, "alerts": []}
     
-    # Environment variable varsa öncelikli kullan
     if os.environ.get("BOT_TOKEN"):
         data["telegram"]["bot_token"] = os.environ.get("BOT_TOKEN")
     if os.environ.get("CHAT_ID"):
         data["telegram"]["chat_id"] = os.environ.get("CHAT_ID")
+    
+    # Pariteler env'den geliyorsa ekle
+    if os.environ.get("PAIRS"):
+        env_pairs = os.environ.get("PAIRS").split(",")
+        existing = [p["symbol"] for p in data["pairs"]]
+        for sym in env_pairs:
+            sym = sym.strip().upper()
+            if sym and sym not in existing:
+                data["pairs"].append({"symbol": sym, "last_price": None, "last_scan": None, "fvgs": []})
     
     return data
 
