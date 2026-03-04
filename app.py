@@ -107,6 +107,8 @@ def scan_loop():
             print(f"Tarama hatası: {e}")
         time.sleep(300)
 
+threading.Thread(target=scan_loop, daemon=True).start()
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -158,8 +160,3 @@ def scan_now():
         results.append({"symbol": pair["symbol"], "price": price, "fvg_count": len(fvgs)})
     save_data(data)
     return jsonify({"ok": True, "results": results})
-
-if __name__ == "__main__":
-    t = threading.Thread(target=scan_loop, daemon=True)
-    t.start()
-    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
