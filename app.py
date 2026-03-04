@@ -8,6 +8,7 @@ import requests
 from datetime import datetime
 
 app = Flask(__name__)
+SENT_ALERTS = set()
 DATA_FILE = "watchlist.json"
 
 def load_data():
@@ -86,8 +87,7 @@ def scan_loop():
                     triggered = [max(triggered, key=lambda x: x["date"])]
                 for fvg in triggered:
                     alert_key = f"{symbol}_{fvg['date']}_{fvg['type']}"
-                    sent_alerts = data.get("sent_alerts", [])
-                    if alert_key not in sent_alerts:
+                    if alert_key not in SENT_ALERTS:
                         direction = "📈 BULLISH" if fvg["type"] == "bullish" else "📉 BEARISH"
                         msg = (f"⚡ <b>FVG ALARM!</b>\n\n"
                                f"📊 <b>Parite:</b> {symbol}\n"
@@ -98,8 +98,7 @@ def scan_loop():
                                f"⏰ <b>Alarm Zamanı:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}")
                         if bot_token and chat_id:
                             if send_telegram(bot_token, chat_id, msg):
-                                sent_alerts.append(alert_key)
-                                data["sent_alerts"] = sent_alerts
+                                SENT_ALERTS.add(alert_key)
                                 data["alerts"].insert(0, {"symbol": symbol, "type": fvg["type"], "price": current_price, "fvg_range": f"{fvg['bottom']:.5f} - {fvg['top']:.5f}", "time": datetime.now().strftime("%d.%m.%Y %H:%M")})
                                 data["alerts"] = data["alerts"][:50]
             save_data(data)
