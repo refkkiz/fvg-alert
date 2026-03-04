@@ -45,11 +45,30 @@ def detect_fvg(symbol):
             c0 = df.iloc[i-2]
             c2 = df.iloc[i]
             if c0["High"] < c2["Low"]:
-                fvgs.append({"type": "bullish", "top": float(c2["Low"]), "bottom": float(c0["High"]), "date": str(df.index[i-1].date()), "filled": False})
+                fvg_bottom = float(c0["High"])
+                fvg_top = float(c2["Low"])
+                # FVG oluştuktan sonra fiyat bu bölgeye girmiş mi?
+                touched = False
+                for j in range(i+1, len(df)):
+                    future = df.iloc[j]
+                    if future["Low"] <= fvg_top and future["High"] >= fvg_bottom:
+                        touched = True
+                        break
+                fvgs.append({"type": "bullish", "top": fvg_top, "bottom": fvg_bottom, "date": str(df.index[i-1].date()), "filled": touched})
             elif c0["Low"] > c2["High"]:
-                fvgs.append({"type": "bearish", "top": float(c0["Low"]), "bottom": float(c2["High"]), "date": str(df.index[i-1].date()), "filled": False})
+                fvg_bottom = float(c2["High"])
+                fvg_top = float(c0["Low"])
+                touched = False
+                for j in range(i+1, len(df)):
+                    future = df.iloc[j]
+                    if future["Low"] <= fvg_top and future["High"] >= fvg_bottom:
+                        touched = True
+                        break
+                fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": str(df.index[i-1].date()), "filled": touched})
+
         current_price = float(df["Close"].iloc[-1])
-        recent_fvgs = fvgs[-15:]
+        # Sadece kullanılmamış FVG'leri al
+        recent_fvgs = [f for f in fvgs if not f["filled"]][-15:]
         for fvg in recent_fvgs:
             fvg["price_inside"] = fvg["bottom"] <= current_price <= fvg["top"]
         return current_price, recent_fvgs
