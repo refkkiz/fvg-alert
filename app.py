@@ -55,7 +55,6 @@ def detect_fvg(symbol):
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print(f"FVG tespit hatası {symbol}: {e}")
         return None, []
 
 def send_telegram(bot_token, chat_id, message):
@@ -114,8 +113,7 @@ def index():
 
 @app.route("/api/data")
 def get_data():
-    data = load_data()
-    return jsonify(data)
+    return jsonify(load_data())
 
 @app.route("/api/pairs", methods=["POST"])
 def add_pair():
@@ -161,8 +159,7 @@ def scan_now():
     save_data(data)
     return jsonify({"ok": True, "results": results})
 
-t = threading.Thread(target=scan_loop, daemon=True)
-t.start()
-
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    t = threading.Thread(target=scan_loop, daemon=True)
+    t.start()
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
