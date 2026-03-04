@@ -90,7 +90,9 @@ def detect_fvg(symbol):
         return current_price, recent_fvgs
 
     except Exception as e:
+        import traceback
         print(f"FVG tespit hatası {symbol}: {e}")
+        traceback.print_exc()
         return None, []
 
 # ─── Telegram Bildirimi ───────────────────────────────────────────────────────
