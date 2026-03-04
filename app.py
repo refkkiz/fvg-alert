@@ -160,3 +160,6 @@ def scan_now():
         results.append({"symbol": pair["symbol"], "price": price, "fvg_count": len(fvgs)})
     save_data(data)
     return jsonify({"ok": True, "results": results})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
