@@ -5,7 +5,10 @@ import os
 import threading
 import time
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
+
+def now_tr():
+    return datetime.utcnow() + timedelta(hours=3)
 
 app = Flask(__name__)
 SENT_ALERTS = set()
@@ -66,6 +69,8 @@ def detect_fvg_oanda(symbol):
             "granularity": "D",
             "count": 90,
             "price": "M"
+            "dailyAlignment": 17,
+            "alignmentTimezone": "America/New_York"
         }
         r = requests.get(url, headers=headers, params=params, timeout=15)
         data = r.json()
@@ -160,7 +165,7 @@ def scan_loop():
                 if current_price is None:
                     continue
                 pair["last_price"] = current_price
-                pair["last_scan"] = datetime.now().strftime("%H:%M:%S")
+                pair["last_scan"] = now_tr().strftime("%H:%M:%S")
                 pair["fvgs"] = fvgs
                 triggered = [f for f in fvgs if f.get("price_inside")]
                 if triggered:
@@ -175,11 +180,11 @@ def scan_loop():
                                f"💰 <b>Güncel Fiyat:</b> {current_price:.5f}\n"
                                f"📐 <b>FVG Aralığı:</b> {fvg['bottom']:.5f} - {fvg['top']:.5f}\n"
                                f"📅 <b>FVG Tarihi:</b> {fvg['date']}\n"
-                               f"⏰ <b>Alarm Zamanı:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+                               f"⏰ <b>Alarm Zamanı:</b> {now_tr().strftime('%d.%m.%Y %H:%M')}")
                         if bot_token and chat_id:
                             if send_telegram(bot_token, chat_id, msg):
                                 SENT_ALERTS.add(alert_key)
-                                data["alerts"].insert(0, {"symbol": symbol, "type": fvg["type"], "price": current_price, "fvg_range": f"{fvg['bottom']:.5f} - {fvg['top']:.5f}", "time": datetime.now().strftime("%d.%m.%Y %H:%M")})
+                                data["alerts"].insert(0, {"symbol": symbol, "type": fvg["type"], "price": current_price, "fvg_range": f"{fvg['bottom']:.5f} - {fvg['top']:.5f}", "time": now_tr().strftime("%d.%m.%Y %H:%M")})
                                 data["alerts"] = data["alerts"][:50]
             save_data(data)
         except Exception as e:
@@ -234,7 +239,7 @@ def scan_now():
     for pair in data["pairs"]:
         price, fvgs = detect_fvg(pair["symbol"])
         pair["last_price"] = price
-        pair["last_scan"] = datetime.now().strftime("%H:%M:%S")
+        pair["last_scan"] = now_tr().strftime("%H:%M:%S")
         pair["fvgs"] = fvgs
         results.append({"symbol": pair["symbol"], "price": price, "fvg_count": len(fvgs)})
     save_data(data)
