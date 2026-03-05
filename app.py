@@ -40,6 +40,7 @@ def detect_fvg(symbol):
         df = ticker.history(period="60d", interval="1d")
         if df.empty or len(df) < 3:
             return None, []
+        df = df.iloc[:-1]
         fvgs = []
         for i in range(2, len(df)):
             c0 = df.iloc[i-2]
