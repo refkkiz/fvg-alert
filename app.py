@@ -60,7 +60,7 @@ def detect_fvg_oanda(symbol):
         api_key = os.environ.get("OANDA_API_KEY", "")
         oanda_symbol = OANDA_SYMBOLS.get(symbol, symbol)
         
-        url = f"https://api-fxtrade.oanda.com/v3/instruments/{oanda_symbol}/candles"
+        url = f"https://api-fxpractice.oanda.com/v3/instruments/{oanda_symbol}/candles"
         headers = {"Authorization": f"Bearer {api_key}"}
         params = {
             "granularity": "D",
