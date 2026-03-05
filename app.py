@@ -36,43 +36,82 @@ def save_data(data):
 
 def detect_fvg(symbol):
     try:
-        ticker = yf.Ticker(symbol)
-        df = ticker.history(period="60d", interval="1d")
-        if df.empty or len(df) < 3:
-            return None, []
-        df = df.iloc[:-1]
-        fvgs = []
-        for i in range(2, len(df)):
-            c0 = df.iloc[i-2]
-            c2 = df.iloc[i]
-            if c0["High"] < c2["Low"]:
-                fvg_bottom = float(c0["High"])
-                fvg_top = float(c2["Low"])
-                # FVG oluştuktan sonra fiyat bu bölgeye girmiş mi?
-                touched = False
-                for j in range(i+1, len(df)):
-                    future = df.iloc[j]
-                    if future["Low"] <= fvg_top and future["High"] >= fvg_bottom:
-                        touched = True
-                        break
-                fvgs.append({"type": "bullish", "top": fvg_top, "bottom": fvg_bottom, "date": str(df.index[i-1].date()), "filled": touched})
-            elif c0["Low"] > c2["High"]:
-                fvg_bottom = float(c2["High"])
-                fvg_top = float(c0["Low"])
-                touched = False
-                for j in range(i+1, len(df)):
-                    future = df.iloc[j]
-                    if future["Low"] <= fvg_top and future["High"] >= fvg_bottom:
-                        touched = True
-                        break
-                fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": str(df.index[i-1].date()), "filled": touched})
+        api_key = os.environ.get("TWELVE_API_KEY", "")
+        
+        # Twelve Data sembol dönüşümü
+        td_symbol = symbol.replace("=X", "").replace("^", "").replace("-", "/")
+        # Özel durumlar
+        special = {
+            "GC=F": "XAU/USD", "SI=F": "XAG/USD",
+            "CL=F": "WTI/USD", "BZ=F": "BRENT/USD",
+            "^DJI": "DJI", "^NDX": "NDX", "^FTSE": "FTSE",
+            "^N225": "N225", "^GDAXI": "DAX", "^GSPC": "SPX",
+            "BTC-USD": "BTC/USD", "ETH-USD": "ETH/USD"
+        }
+        td_symbol = special.get(symbol, td_symbol)
 
-        current_price = float(df["Close"].iloc[-1])
-        # Sadece kullanılmamış FVG'leri al
+        url = f"https://api.twelvedata.com/time_series"
+        params = {
+            "symbol": td_symbol,
+            "interval": "1day",
+            "outputsize": 60,
+            "apikey": api_key
+        }
+        r = requests.get(url, params=params, timeout=15)
+        data = r.json()
+
+        if "values" not in data:
+            print(f"Twelve Data hata {symbol}: {data}")
+            return None, []
+
+        values = data["values"]
+        if len(values) < 3:
+            return None, []
+
+        # En eski → en yeni sırala
+        values = list(reversed(values))
+
+        # Kapanmamış son mumu çıkar
+        values = values[:-1]
+
+        fvgs = []
+        for i in range(2, len(values)):
+            c0 = values[i-2]
+            c2 = values[i]
+            h0 = float(c0["high"])
+            l0 = float(c0["low"])
+            h2 = float(c2["high"])
+            l2 = float(c2["low"])
+            date = values[i-1]["datetime"][:10]
+
+            if h0 < l2:
+                fvg_bottom = h0
+                fvg_top = l2
+                touched = False
+                for j in range(i+1, len(values)):
+                    f = values[j]
+                    if float(f["low"]) <= fvg_top and float(f["high"]) >= fvg_bottom:
+                        touched = True
+                        break
+                fvgs.append({"type": "bullish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
+
+            elif l0 > h2:
+                fvg_bottom = h2
+                fvg_top = l0
+                touched = False
+                for j in range(i+1, len(values)):
+                    f = values[j]
+                    if float(f["low"]) <= fvg_top and float(f["high"]) >= fvg_bottom:
+                        touched = True
+                        break
+                fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
+
+        current_price = float(values[-1]["close"])
         recent_fvgs = [f for f in fvgs if not f["filled"]][-15:]
         for fvg in recent_fvgs:
             fvg["price_inside"] = fvg["bottom"] <= current_price <= fvg["top"]
         return current_price, recent_fvgs
+
     except Exception as e:
         import traceback
         traceback.print_exc()
