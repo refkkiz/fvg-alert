@@ -34,13 +34,84 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2, default=str)
 
+OANDA_SYMBOLS = {
+    "EURUSD=X": "EUR_USD", "USDJPY=X": "USD_JPY", "GBPUSD=X": "GBP_USD",
+    "USDCHF=X": "USD_CHF", "AUDUSD=X": "AUD_USD", "USDCAD=X": "USD_CAD",
+    "NZDUSD=X": "NZD_USD", "EURJPY=X": "EUR_JPY", "GBPJPY=X": "GBP_JPY",
+    "EURGBP=X": "EUR_GBP", "GC=F": "XAU_USD", "SI=F": "XAG_USD",
+    "CL=F": "WTICO_USD", "BZ=F": "BCO_USD",
+    "^DJI": "US30_USD", "^NDX": "NAS100_USD", "^FTSE": "UK100_GBP",
+    "^N225": "JP225_USD", "^GDAXI": "DE40_EUR", "^GSPC": "SPX500_USD"
+}
+
 def detect_fvg(symbol):
+    try:
+        if symbol in ["BTC-USD", "ETH-USD"]:
+            return detect_fvg_yahoo(symbol)
+        else:
+            return detect_fvg_oanda(symbol)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return None, []
+
+def detect_fvg_oanda(symbol):
+    try:
+        api_key = os.environ.get("OANDA_API_KEY", "")
+        oanda_symbol = OANDA_SYMBOLS.get(symbol, symbol)
+        
+        url = f"https://api-fxtrade.oanda.com/v3/instruments/{oanda_symbol}/candles"
+        headers = {"Authorization": f"Bearer {api_key}"}
+        params = {
+            "granularity": "D",
+            "count": 90,
+            "price": "M"
+        }
+        r = requests.get(url, headers=headers, params=params, timeout=15)
+        data = r.json()
+        
+        if "candles" not in data:
+            print(f"OANDA hata {symbol}: {data}")
+            return None, []
+        
+        candles = [c for c in data["candles"] if c["complete"]]
+        if len(candles) < 3:
+            return None, []
+        
+        fvgs = []
+        for i in range(2, len(candles)):
+            h0 = float(candles[i-2]["mid"]["h"])
+            l0 = float(candles[i-2]["mid"]["l"])
+            h2 = float(candles[i]["mid"]["h"])
+            l2 = float(candles[i]["mid"]["l"])
+            date = candles[i-1]["time"][:10]
+            
+            if h0 < l2:
+                fvg_bottom, fvg_top = h0, l2
+                touched = any(float(candles[j]["mid"]["l"]) <= fvg_top and float(candles[j]["mid"]["h"]) >= fvg_bottom for j in range(i+1, len(candles)))
+                fvgs.append({"type": "bullish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
+            elif l0 > h2:
+                fvg_bottom, fvg_top = h2, l0
+                touched = any(float(candles[j]["mid"]["l"]) <= fvg_top and float(candles[j]["mid"]["h"]) >= fvg_bottom for j in range(i+1, len(candles)))
+                fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
+        
+        current_price = float(candles[-1]["mid"]["c"])
+        recent_fvgs = [f for f in fvgs if not f["filled"]][-15:]
+        for fvg in recent_fvgs:
+            fvg["price_inside"] = fvg["bottom"] <= current_price <= fvg["top"]
+        return current_price, recent_fvgs
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return None, []
+
+def detect_fvg_yahoo(symbol):
     try:
         ticker = yf.Ticker(symbol)
         df = ticker.history(period="90d", interval="1d")
         if df.empty or len(df) < 3:
             return None, []
-        # Kapanmamış son mumu çıkar
         df = df.iloc[:-1]
         fvgs = []
         for i in range(2, len(df)):
