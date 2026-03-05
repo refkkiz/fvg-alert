@@ -68,7 +68,7 @@ def detect_fvg_oanda(symbol):
         params = {
             "granularity": "D",
             "count": 90,
-            "price": "M"
+            "price": "M",
             "dailyAlignment": 17,
             "alignmentTimezone": "America/New_York"
         }
