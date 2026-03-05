@@ -89,7 +89,9 @@ def detect_fvg_oanda(symbol):
             l0 = float(candles[i-2]["mid"]["l"])
             h2 = float(candles[i]["mid"]["h"])
             l2 = float(candles[i]["mid"]["l"])
-            date = candles[i-1]["time"][:10]
+            from datetime import timezone
+            candle_time = datetime.fromisoformat(candles[i-1]["time"][:19])
+            date = (candle_time + timedelta(hours=3)).strftime("%Y-%m-%d")
             
             if h0 < l2:
                 fvg_bottom, fvg_top = h0, l2
