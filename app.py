@@ -36,87 +36,8 @@ def save_data(data):
 
 def detect_fvg(symbol):
     try:
-        # Varlık tipine göre API seç
-        forex_symbols = ["EUR/USD", "USD/JPY", "GBP/USD", "USD/CHF", "AUD/USD", 
-                        "USD/CAD", "NZD/USD", "EUR/JPY", "GBP/JPY", "EUR/GBP"]
-        
-        if symbol in forex_symbols:
-            return detect_fvg_finnhub(symbol)
-        else:
-            return detect_fvg_yahoo(symbol)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return None, []
-
-def detect_fvg_finnhub(symbol):
-    try:
-        import time as t
-        api_key = os.environ.get("FINNHUB_API_KEY", "")
-        finnhub_symbol = symbol.replace("/", "")  # EUR/USD → EURUSD
-        
-        end = int(t.time())
-        start = end - (90 * 24 * 60 * 60)  # 90 gün
-        
-        url = f"https://finnhub.io/api/v1/forex/candle"
-        params = {
-            "symbol": f"OANDA:{finnhub_symbol}",
-            "resolution": "D",
-            "from": start,
-            "to": end,
-            "token": api_key
-        }
-        r = requests.get(url, params=params, timeout=15)
-        data = r.json()
-        
-        if data.get("s") != "ok":
-            print(f"Finnhub hata {symbol}: {data}")
-            return None, []
-        
-        highs = data["h"]
-        lows = data["l"]
-        closes = data["c"]
-        timestamps = data["t"]
-        
-        # Kapanmamış son mumu çıkar
-        highs = highs[:-1]
-        lows = lows[:-1]
-        closes = closes[:-1]
-        timestamps = timestamps[:-1]
-        
-        if len(closes) < 3:
-            return None, []
-        
-        fvgs = []
-        for i in range(2, len(closes)):
-            h0, l0 = highs[i-2], lows[i-2]
-            h2, l2 = highs[i], lows[i]
-            date = datetime.fromtimestamp(timestamps[i-1]).strftime("%Y-%m-%d")
-            
-            if h0 < l2:
-                fvg_bottom, fvg_top = h0, l2
-                touched = any(lows[j] <= fvg_top and highs[j] >= fvg_bottom for j in range(i+1, len(closes)))
-                fvgs.append({"type": "bullish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
-            elif l0 > h2:
-                fvg_bottom, fvg_top = h2, l0
-                touched = any(lows[j] <= fvg_top and highs[j] >= fvg_bottom for j in range(i+1, len(closes)))
-                fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
-        
-        current_price = closes[-1]
-        recent_fvgs = [f for f in fvgs if not f["filled"]][-15:]
-        for fvg in recent_fvgs:
-            fvg["price_inside"] = fvg["bottom"] <= current_price <= fvg["top"]
-        return current_price, recent_fvgs
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return None, []
-
-def detect_fvg_yahoo(symbol):
-    try:
         ticker = yf.Ticker(symbol)
-        df = ticker.history(period="60d", interval="1d")
+        df = ticker.history(period="90d", interval="1d")
         if df.empty or len(df) < 3:
             return None, []
         # Kapanmamış son mumu çıkar
@@ -125,26 +46,17 @@ def detect_fvg_yahoo(symbol):
         for i in range(2, len(df)):
             c0 = df.iloc[i-2]
             c2 = df.iloc[i]
-            if c0["High"] < c2["Low"]:
-                fvg_bottom = float(c0["High"])
-                fvg_top = float(c2["Low"])
-                touched = False
-                for j in range(i+1, len(df)):
-                    f = df.iloc[j]
-                    if f["Low"] <= fvg_top and f["High"] >= fvg_bottom:
-                        touched = True
-                        break
-                fvgs.append({"type": "bullish", "top": fvg_top, "bottom": fvg_bottom, "date": str(df.index[i-1].date()), "filled": touched})
-            elif c0["Low"] > c2["High"]:
-                fvg_bottom = float(c2["High"])
-                fvg_top = float(c0["Low"])
-                touched = False
-                for j in range(i+1, len(df)):
-                    f = df.iloc[j]
-                    if f["Low"] <= fvg_top and f["High"] >= fvg_bottom:
-                        touched = True
-                        break
-                fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": str(df.index[i-1].date()), "filled": touched})
+            h0, l0 = float(c0["High"]), float(c0["Low"])
+            h2, l2 = float(c2["High"]), float(c2["Low"])
+            date = str(df.index[i-1].date())
+            if h0 < l2:
+                fvg_bottom, fvg_top = h0, l2
+                touched = any(float(df.iloc[j]["Low"]) <= fvg_top and float(df.iloc[j]["High"]) >= fvg_bottom for j in range(i+1, len(df)))
+                fvgs.append({"type": "bullish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
+            elif l0 > h2:
+                fvg_bottom, fvg_top = h2, l0
+                touched = any(float(df.iloc[j]["Low"]) <= fvg_top and float(df.iloc[j]["High"]) >= fvg_bottom for j in range(i+1, len(df)))
+                fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
         current_price = float(df["Close"].iloc[-1])
         recent_fvgs = [f for f in fvgs if not f["filled"]][-15:]
         for fvg in recent_fvgs:
