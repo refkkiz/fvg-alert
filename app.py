@@ -41,7 +41,7 @@ OANDA_SYMBOLS = {
     "EURGBP=X": "EUR_GBP", "GC=F": "XAU_USD", "SI=F": "XAG_USD",
     "CL=F": "WTICO_USD", "BZ=F": "BCO_USD",
     "^DJI": "US30_USD", "^NDX": "NAS100_USD", "^FTSE": "UK100_GBP",
-    "^N225": "JP225_USD", "^GDAXI": "DE40_EUR", "^GSPC": "SPX500_USD"
+    "^N225": "JP225_USD", "^GDAXI": "DE30_EUR", "^GSPC": "SPX500_USD"
 }
 
 def detect_fvg(symbol):
