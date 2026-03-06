@@ -191,7 +191,7 @@ def scan_loop():
             save_data(data)
         except Exception as e:
             print(f"Tarama hatası: {e}")
-        time.sleep(300)
+        time.sleep(60)
 
 threading.Thread(target=scan_loop, daemon=True).start()
 
