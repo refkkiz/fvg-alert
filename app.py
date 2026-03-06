@@ -47,10 +47,15 @@ OANDA_SYMBOLS = {
     "^N225": "JP225_USD", "^GDAXI": "DE30_EUR", "^GSPC": "SPX500_USD"
 }
 
+CRYPTO_SYMBOLS = {
+    "BTC-USD": "BTCUSDT",
+    "ETH-USD": "ETHUSDT"
+}
+
 def detect_fvg(symbol):
     try:
-        if symbol in ["BTC-USD", "ETH-USD"]:
-            return detect_fvg_yahoo(symbol)
+        if symbol in CRYPTO_SYMBOLS:
+            return detect_fvg_binance(symbol)
         else:
             return detect_fvg_oanda(symbol)
     except Exception as e:
@@ -113,33 +118,50 @@ def detect_fvg_oanda(symbol):
         traceback.print_exc()
         return None, []
 
-def detect_fvg_yahoo(symbol):
+def detect_fvg_binance(symbol):
     try:
-        ticker = yf.Ticker(symbol)
-        df = ticker.history(period="90d", interval="1d")
-        if df.empty or len(df) < 3:
+        binance_symbol = CRYPTO_SYMBOLS.get(symbol)
+        url = "https://api.binance.com/api/v3/klines"
+        params = {
+            "symbol": binance_symbol,
+            "interval": "1d",
+            "limit": 92
+        }
+        r = requests.get(url, params=params, timeout=15)
+        data = r.json()
+
+        if not data or isinstance(data, dict):
+            print(f"Binance hata {symbol}: {data}")
             return None, []
-        df = df.iloc[:-1]
+
+        data = data[:-1]  # Kapanmamış son mumu çıkar
+
+        if len(data) < 3:
+            return None, []
+
         fvgs = []
-        for i in range(2, len(df)):
-            c0 = df.iloc[i-2]
-            c2 = df.iloc[i]
-            h0, l0 = float(c0["High"]), float(c0["Low"])
-            h2, l2 = float(c2["High"]), float(c2["Low"])
-            date = str(df.index[i-1].date())
+        for i in range(2, len(data)):
+            h0 = float(data[i-2][2])
+            l0 = float(data[i-2][3])
+            h2 = float(data[i][2])
+            l2 = float(data[i][3])
+            date = datetime.utcfromtimestamp(data[i-1][0]/1000).strftime("%Y-%m-%d")
+
             if h0 < l2:
                 fvg_bottom, fvg_top = h0, l2
-                touched = any(float(df.iloc[j]["Low"]) <= fvg_top and float(df.iloc[j]["High"]) >= fvg_bottom for j in range(i+1, len(df)))
+                touched = any(float(data[j][3]) <= fvg_top and float(data[j][2]) >= fvg_bottom for j in range(i+1, len(data)))
                 fvgs.append({"type": "bullish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
             elif l0 > h2:
                 fvg_bottom, fvg_top = h2, l0
-                touched = any(float(df.iloc[j]["Low"]) <= fvg_top and float(df.iloc[j]["High"]) >= fvg_bottom for j in range(i+1, len(df)))
+                touched = any(float(data[j][3]) <= fvg_top and float(data[j][2]) >= fvg_bottom for j in range(i+1, len(data)))
                 fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
-        current_price = float(df["Close"].iloc[-1])
+
+        current_price = float(data[-1][4])
         recent_fvgs = [f for f in fvgs if not f["filled"]][-15:]
         for fvg in recent_fvgs:
             fvg["price_inside"] = fvg["bottom"] <= current_price <= fvg["top"]
         return current_price, recent_fvgs
+
     except Exception as e:
         import traceback
         traceback.print_exc()
