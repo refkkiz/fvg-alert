@@ -155,8 +155,9 @@ def detect_fvg_binance(symbol):
                 fvg_bottom, fvg_top = h2, l0
                 touched = any(float(data[j][3]) <= fvg_top and float(data[j][2]) >= fvg_bottom for j in range(i+1, len(data)))
                 fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
-
-        current_price = float(data[-1][4])
+         
+        ticker_r = requests.get(f"https://api.binance.com/api/v3/ticker/price?symbol={binance_symbol}", timeout=10)
+        current_price = float(ticker_r.json()["price"])
         recent_fvgs = [f for f in fvgs if not f["filled"]][-15:]
         for fvg in recent_fvgs:
             fvg["price_inside"] = fvg["bottom"] <= current_price <= fvg["top"]
