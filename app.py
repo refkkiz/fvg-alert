@@ -84,6 +84,9 @@ def detect_fvg_oanda(symbol):
             "alignmentTimezone": "America/New_York"
         }
         r = requests.get(url, headers=headers, params=params, timeout=15)
+        if not r.text:
+            print(f"OANDA boş yanıt {symbol}, atlanıyor")
+            return None, []
         data = r.json()
         
         if "candles" not in data:
@@ -193,6 +196,7 @@ def scan_loop():
             for pair in data["pairs"]:
                 symbol = pair["symbol"]
                 current_price, fvgs = detect_fvg(symbol)
+                time.sleep(1.5)
                 if current_price is None:
                     continue
                 pair["last_price"] = current_price
