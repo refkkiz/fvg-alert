@@ -114,8 +114,15 @@ def detect_fvg_oanda(symbol):
                 fvg_bottom, fvg_top = h2, l0
                 touched = any(float(candles[j]["mid"]["l"]) <= fvg_top and float(candles[j]["mid"]["h"]) >= fvg_bottom for j in range(i+1, len(candles)))
                 fvgs.append({"type": "bearish", "top": fvg_top, "bottom": fvg_bottom, "date": date, "filled": touched})
-        
-        current_price = float(candles[-1]["mid"]["c"])
+           
+        price_url = f"https://api-fxpractice.oanda.com/v3/instruments/{oanda_symbol}/candles?granularity=S5&count=1&price=M"
+        price_r = requests.get(price_url, headers=headers, timeout=10)
+        if price_r.status_code == 200 and price_r.text:
+            price_data = price_r.json()
+            current_price = float(price_data["candles"][0]["mid"]["c"])
+        else:
+            current_price = float(candles[-1]["mid"]["c"])
+
         recent_fvgs = [f for f in fvgs if not f["filled"]][-15:]
         for fvg in recent_fvgs:
             fvg["price_inside"] = fvg["bottom"] <= current_price <= fvg["top"]
