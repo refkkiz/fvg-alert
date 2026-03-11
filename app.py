@@ -36,22 +36,6 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2, default=str)
 
-OANDA_SYMBOLS = {
-    "EURUSD=X": "EUR_USD", "USDJPY=X": "USD_JPY", "GBPUSD=X": "GBP_USD",
-    "USDCHF=X": "USD_CHF", "AUDUSD=X": "AUD_USD", "USDCAD=X": "USD_CAD",
-    "NZDUSD=X": "NZD_USD", "EURJPY=X": "EUR_JPY", "GBPJPY=X": "GBP_JPY",
-    "EURGBP=X": "EUR_GBP", "GC=F": "XAU_USD", "SI=F": "XAG_USD",
-    "CL=F": "WTICO_USD", "BZ=F": "BCO_USD",
-    "^DJI": "US30_USD", "^NDX": "NAS100_USD", "^FTSE": "UK100_GBP",
-    "^N225": "JP225_USD", "^GDAXI": "DE30_EUR", "^GSPC": "SPX500_USD",
-    "EURCHF=X": "EUR_CHF", "AUDJPY=X": "AUD_JPY", "CHFJPY=X": "CHF_JPY",
-    "EURAUD=X": "EUR_AUD", "CADJPY=X": "CAD_JPY", "GBPAUD=X": "GBP_AUD",
-    "EURCAD=X": "EUR_CAD", "AUDCAD=X": "AUD_CAD", "GBPCAD=X": "GBP_CAD",
-    "AUDNZD=X": "AUD_NZD", "NZDJPY=X": "NZD_JPY", "AUDCHF=X": "AUD_CHF",
-    "GBPNZD=X": "GBP_NZD", "EURNZD=X": "EUR_NZD", "CADCHF=X": "CAD_CHF",
-    "NZDCAD=X": "NZD_CAD", "NZDCHF=X": "NZD_CHF", "GBPCHF=X": "GBP_CHF"
-}
-
 CRYPTO_SYMBOLS = {
     "BTC-USD": "BTCUSDT",
     "ETH-USD": "ETHUSDT"
@@ -60,6 +44,8 @@ CRYPTO_SYMBOLS = {
 def detect_fvg(symbol):
     try:
         if symbol in CRYPTO_SYMBOLS:
+            return detect_fvg_binance(symbol)
+        elif symbol in ["BTC-USD", "ETH-USD"]:
             return detect_fvg_binance(symbol)
         else:
             return detect_fvg_oanda(symbol)
@@ -71,7 +57,7 @@ def detect_fvg(symbol):
 def detect_fvg_oanda(symbol):
     try:
         api_key = os.environ.get("OANDA_API_KEY", "")
-        oanda_symbol = OANDA_SYMBOLS.get(symbol, symbol)
+        oanda_symbol = symbol
         
         url = f"https://api-fxpractice.oanda.com/v3/instruments/{oanda_symbol}/candles"
         headers = {"Authorization": f"Bearer {api_key}"}
