@@ -83,8 +83,8 @@ def detect_fvg_oanda(symbol):
             "alignmentTimezone": "America/New_York"
         }
         r = requests.get(url, headers=headers, params=params, timeout=15)
-        if not r.text:
-            print(f"OANDA boş yanıt {symbol}, atlanıyor")
+        if not r.text or r.status_code != 200:
+            print(f"OANDA boş yanıt {symbol} - status: {r.status_code}")
             return None, []
         data = r.json()
         
