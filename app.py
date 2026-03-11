@@ -195,7 +195,7 @@ def scan_loop():
             for pair in data["pairs"]:
                 symbol = pair["symbol"]
                 current_price, fvgs = detect_fvg(symbol)
-                time.sleep(1.5)
+                time.sleep(0.5)
                 if current_price is None:
                     continue
                 pair["last_price"] = current_price
